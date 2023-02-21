@@ -1,0 +1,21 @@
+{
+  "name": "telegram",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.7.1",
+    "cron": "^2.2.0",
+    "fs": "^0.0.1-security",
+    "https": "^1.0.0",
+    "instagram-web-api": "^2.2.2",
+    "node-cache": "^5.1.2",
+    "node-telegram-bot-api": "^0.61.0"
+  },
+  "author": "",
+  "license": "ISC"
+}
