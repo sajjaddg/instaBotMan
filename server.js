@@ -1,24 +1,43 @@
 const { createClient } = require('@supabase/supabase-js');
-const Instagram = require('instagram-web-api')
+const { IgApiClient } = require('instagram-private-api');
 const TelegramBot = require('node-telegram-bot-api');
 const https = require('https');
 const fs = require("fs");
 const NodeCache = require('node-cache');
-const { log } = require('console');
+const CronJob = require('cron').CronJob;
+require('dotenv').config();
 
-const supabase = createClient('https://gxthrwpinbsehjsctzkm.supabase.co', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd4dGhyd3BpbmJzZWhqc2N0emttIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NzY0NDAzMjcsImV4cCI6MTk5MjAxNjMyN30.SavcbPmUNQRiTQ3x3xSBE6KQ2chmwEiV5i82Hm_XBtc')
+const ig = new IgApiClient();
+const job = new CronJob('0 12 * * *', function() {
+	const d = new Date();
+	console.log('Every second:', d);
+});
+
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPBASE_KEY)
 const cache = new NodeCache();
 
 const commands = [
   // { command: 'start', description: 'Start the bot' },
-  // { command: 'help', description: 'Get help with the bot' },
+  { command: 'newtag', description: 'type name of new tag after this commend' },
   { command: 'tags', description: 'list of tags' }
 
 ];
 
-const password = 'sajjaddg'
-const apiToken = "6116925633:AAHhsrPsfrA-o1kF0zJkzBc5AZTdraev-7Q"
-// const client = new Instagram({ username, password })
+const password = process.env.BOT_PASSWORD;
+const apiToken = process.env.BOT_API;
+const loggedInUser= null
+// (async(loggedInUser)=>{
+  // try{
+  //   ig.state.generateDevice(process.env.INSTAGRAM_USER);
+  //   loggedInUser = await ig.account.login(process.env.INSTAGRAM_USER,process.env.INSTAGRAM_PASSWORD);
+    
+  // }
+  // catch(e){
+  //   console.log(e);
+  // }
+
+// })(loggedInUser)
+
 const bot = new TelegramBot(apiToken);
 bot.setMyCommands(commands).then(() => {
   console.log('Commands have been set');
@@ -54,8 +73,18 @@ function processMessage(chatId,msg) {
     if(msg.photo){
       imageProcess(chatId,msg)
     }
+    if(msg.text?.includes('/newtag')){
+      newTagProcess(chatId,msg)
+    }
 }
+async function newTagProcess(chatId,msg){
+  const regex = /\/newtag\s*(.*)/;
+  const matches = msg.text.match(regex);
+  const res = matches[1]
+  const result = await createTag(res)
+  bot.sendMessage(chatId,result?'تگ ساختیم':'ریدیم ک :_(')
 
+}
 async function tagProcess(chatId,msg){
 
   const data = await getTags()
@@ -69,7 +98,8 @@ async function tagProcess(chatId,msg){
       }
     };
     bot.sendMessage(chatId,element.name,opts)
-  });
+  })
+  
 }
 
 
@@ -146,6 +176,7 @@ async function imageProcess(chatId,msg){
 
 
 async function getTags(){
+   
   let { data, error } = await supabase
   .from('tags')
   .select()
@@ -154,7 +185,6 @@ async function getTags(){
 }
 
 async function addImage(tagId,image){
-  console.log(image);
   try{
     const { data, error } = await supabase
     .from('Image')
@@ -169,6 +199,57 @@ async function addImage(tagId,image){
   
  
 }
+
+async function loginInstagram(user){
+  try{
+    ig.state.generateDevice(process.env.INSTAGRAM_USER);
+    loggedInUser = await ig.account.login(process.env.INSTAGRAM_USER,process.env.INSTAGRAM_PASSWORD);
+    
+  }
+  catch(e){
+    console.log(e);
+  }
+}
+
+async function postImage(imagePath, caption) {
+  const imageBuffer = fs.readFileSync(imagePath);
+
+  // Upload the image to Instagram
+  const { upload_id } = await ig.publish.photo({
+    file: imageBuffer,
+    caption: caption,
+  });
+  
+  await ig.publish.feed({
+    upload_id,
+    caption: caption,
+  });
+}
+async function createCaption(params) {
+  
+}
+async function findImage(params) {
+  
+}
+
+async function createTag(tagName){
+  const { data, error } = await supabase
+    .from('tags')
+    .insert([
+      { name: tagName},
+    ])
+
+  return error? false : true
+}
+
+
+// const { data, error } = await supabase
+  // .from('Image')
+  // .select(`
+  //     image,tagId,
+  //     tags(id,name)
+  // `)
+  // console.log(data,error);
 
 bot.startPolling();
 

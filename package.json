@@ -10,8 +10,10 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.7.1",
     "cron": "^2.2.0",
+    "dotenv": "^16.0.3",
     "fs": "^0.0.1-security",
     "https": "^1.0.0",
+    "instagram-private-api": "^1.45.3",
     "instagram-web-api": "^2.2.2",
     "node-cache": "^5.1.2",
     "node-telegram-bot-api": "^0.61.0"
