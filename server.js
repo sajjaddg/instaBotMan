@@ -4,22 +4,24 @@ const TelegramBot = require('node-telegram-bot-api');
 const https = require('https');
 const fs = require("fs");
 const NodeCache = require('node-cache');
+const fetch = require('node-fetch');
 const CronJob = require('cron').CronJob;
 require('dotenv').config();
 
 const ig = new IgApiClient();
-const job = new CronJob('0 12 * * *', function() {
-	const d = new Date();
-	console.log('Every second:', d);
-});
+// const job = new CronJob('0 12 * * *', function() {
+// 	const d = new Date();
+// 	console.log('Every second:', d);
+// });
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPBASE_KEY)
 const cache = new NodeCache();
 
 const commands = [
   // { command: 'start', description: 'Start the bot' },
+  { command: 'tags', description: 'list of tags' },
   { command: 'newtag', description: 'type name of new tag after this commend' },
-  { command: 'tags', description: 'list of tags' }
+  { command: 'images', description: 'list of images' }
 
 ];
 
@@ -131,7 +133,7 @@ async function imageProcess(chatId,msg){
   let photoData = await bot.getFileLink(fileId).then((fileUrl) => {
      return {
       file_id: fileId,
-      file_url: fileUrl,
+      file_telegram_url: fileUrl,
       
     };
   })
@@ -151,9 +153,12 @@ async function imageProcess(chatId,msg){
        bot.sendMessage(chatId,'caption dari?').then(async ()=>{
         bot.once('message',async (msg)=>{
           if(msg.text !=='no'){
-            photoData.caption = msg.text 
+            let fullCaption =createCaption(msg.text,tag.name) 
+            photoData.caption =fullCaption
           }
             try{
+              let url = await addImageStorage(photoData.file_telegram_url,photoData.file_id)
+              photoData.file_supbase_url=url;
               await addImage(tag.id,photoData)
               bot.sendMessage(chatId,'raft tosh :)')
             }
@@ -195,6 +200,7 @@ async function addImage(tagId,image){
   }
   catch(e){
     console.log('error: ',e);
+    
   }
   
  
@@ -225,10 +231,12 @@ async function postImage(imagePath, caption) {
     caption: caption,
   });
 }
-async function createCaption(params) {
+function createCaption(caption, tagName) {
+  let fullCaption= `✨ \n${caption}\n`+`موضوع: ${tagName}.`
+  return fullCaption
   
 }
-async function findImage(params) {
+async function sortImageList(params) {
   
 }
 
@@ -242,7 +250,9 @@ async function createTag(tagName){
   return error? false : true
 }
 
-
+async function getImageList(){
+  
+}
 // const { data, error } = await supabase
   // .from('Image')
   // .select(`
@@ -250,6 +260,26 @@ async function createTag(tagName){
   //     tags(id,name)
   // `)
   // console.log(data,error);
+
+async function addImageStorage(url, name){
+  const baseUrl = 'https://gxthrwpinbsehjsctzkm.supabase.co/storage/v1/object/public/images/'
+  const response = await fetch(url);
+  const buffer = await response.buffer();
+  const filename = `${name}.jpg`; // Set filename with extension
+  const { data, error } = await supabase.storage.from('images').upload(filename, buffer, {
+    cacheControl: '3600', // Optional cache control metadata
+    upsert: true, // Optional upsert flag
+    contentType: 'image/jpeg', // Optional content type
+    contentEncoding: 'base64', // Optional content encoding
+    duplex: true, // Required duplex flag
+  });
+  if (error) {
+    console.log('Error uploading image:', error.message);
+    return;
+  }
+  console.log(baseUrl,data.path);
+  return `${baseUrl}${data.path}`
+}
 
 bot.startPolling();
 
