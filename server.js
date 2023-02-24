@@ -18,7 +18,6 @@ const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPBASE_KEY)
 const cache = new NodeCache();
 
 const commands = [
-  // { command: 'start', description: 'Start the bot' },
   { command: 'tags', description: 'list of tags' },
   { command: 'newtag', description: 'type name of new tag after this commend' },
   { command: 'images', description: 'list of images' }
@@ -28,17 +27,6 @@ const commands = [
 const password = process.env.BOT_PASSWORD;
 const apiToken = process.env.BOT_API;
 const loggedInUser= null
-// (async(loggedInUser)=>{
-  // try{
-  //   ig.state.generateDevice(process.env.INSTAGRAM_USER);
-  //   loggedInUser = await ig.account.login(process.env.INSTAGRAM_USER,process.env.INSTAGRAM_PASSWORD);
-    
-  // }
-  // catch(e){
-  //   console.log(e);
-  // }
-
-// })(loggedInUser)
 
 const bot = new TelegramBot(apiToken);
 bot.setMyCommands(commands).then(() => {
@@ -78,6 +66,17 @@ function processMessage(chatId,msg) {
     if(msg.text?.includes('/newtag')){
       newTagProcess(chatId,msg)
     }
+    if (msg.text === '/images') {
+      imagesProcess(chatId)
+    }
+}
+async function imagesProcess(chatid){
+  let data = await getImages()
+  data?.map((val)=>{
+    const image = val.image
+    bot.sendPhoto(chatid,image.file_supbase_url,{caption:image.caption})
+  })
+
 }
 async function newTagProcess(chatId,msg){
   const regex = /\/newtag\s*(.*)/;
@@ -87,7 +86,7 @@ async function newTagProcess(chatId,msg){
   bot.sendMessage(chatId,result?'تگ ساختیم':'ریدیم ک :_(')
 
 }
-async function tagProcess(chatId,msg){
+async function tagProcess(chatId){
 
   const data = await getTags()
   data?.forEach(element => {
@@ -155,6 +154,9 @@ async function imageProcess(chatId,msg){
           if(msg.text !=='no'){
             let fullCaption =createCaption(msg.text,tag.name) 
             photoData.caption =fullCaption
+          }
+          else{
+            photoData.caption =createCaption('',tag.name)
           }
             try{
               let url = await addImageStorage(photoData.file_telegram_url,photoData.file_id)
@@ -250,16 +252,12 @@ async function createTag(tagName){
   return error? false : true
 }
 
-async function getImageList(){
-  
+async function getImages(){
+  let { data, error } = await supabase
+  .from('Image')
+  .select('image')
+  return data
 }
-// const { data, error } = await supabase
-  // .from('Image')
-  // .select(`
-  //     image,tagId,
-  //     tags(id,name)
-  // `)
-  // console.log(data,error);
 
 async function addImageStorage(url, name){
   const baseUrl = 'https://gxthrwpinbsehjsctzkm.supabase.co/storage/v1/object/public/images/'
