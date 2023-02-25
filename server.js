@@ -1,6 +1,7 @@
 const { createClient } = require('@supabase/supabase-js');
 const { IgApiClient } = require('instagram-private-api');
 const TelegramBot = require('node-telegram-bot-api');
+const axios = require('axios');
 const https = require('https');
 const fs = require("fs");
 const NodeCache = require('node-cache');
@@ -8,11 +9,25 @@ const fetch = require('node-fetch');
 const CronJob = require('cron').CronJob;
 require('dotenv').config();
 
+
+
 const ig = new IgApiClient();
-// const job = new CronJob('0 12 * * *', function() {
-// 	const d = new Date();
-// 	console.log('Every second:', d);
-// });
+const loggedInUser= null
+
+const job = new CronJob('0 12 * * *',async function() {
+  try{
+    
+    if (!loggedInUser)
+      await loginInstagram()
+    const myPost = await findImage()
+    if(myPost)
+      postImage(myPost.image.file_supbase_url,myPost.image.caption)
+      addToPostedImage(myPost.image.id)
+  } 
+  catch{
+    console.log('post nashod');
+  }
+});
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPBASE_KEY)
 const cache = new NodeCache();
@@ -26,7 +41,6 @@ const commands = [
 
 const password = process.env.BOT_PASSWORD;
 const apiToken = process.env.BOT_API;
-const loggedInUser= null
 
 const bot = new TelegramBot(apiToken);
 bot.setMyCommands(commands).then(() => {
@@ -71,6 +85,7 @@ function processMessage(chatId,msg) {
     }
 }
 async function imagesProcess(chatid){
+  findImage()
   let data = await getImages()
   data?.map((val)=>{
     const image = val.image
@@ -219,19 +234,26 @@ async function loginInstagram(user){
   }
 }
 
+async function findImage(){
+  const { data, error } = await supabase
+    .from('Image')
+    .select(
+       `
+        id , image , postedImage (imageId)
+      `
+      )
+        
+  const images = data.filter((image)=>{return image.postedImage.length ===0})
+  images.sort((a,b)=>a.id>b.id)
+  return images.length>0 ? images[0]:null
+}
 async function postImage(imagePath, caption) {
-  const imageBuffer = fs.readFileSync(imagePath);
-
-  // Upload the image to Instagram
+  const imageBuffer = await downloadImage(imagePath);
   const { upload_id } = await ig.publish.photo({
     file: imageBuffer,
     caption: caption,
   });
-  
-  await ig.publish.feed({
-    upload_id,
-    caption: caption,
-  });
+  return true
 }
 function createCaption(caption, tagName) {
   let fullCaption= `✨ \n${caption}\n`+`موضوع: ${tagName}.`
@@ -278,6 +300,20 @@ async function addImageStorage(url, name){
   console.log(baseUrl,data.path);
   return `${baseUrl}${data.path}`
 }
+async function downloadImage(url) {
+  const response = await axios.get(url, {
+    responseType: 'arraybuffer'
+  });
+  const buffer = Buffer.from(response.data, 'binary');
+  return buffer;
+}
+async function addToPostedImage(imageId){
+  const { data, error } = await supabase
+  .from('postedImage')
+  .insert([{ imageId: imageId}])
 
+
+}
+job.start()
 bot.startPolling();
 
