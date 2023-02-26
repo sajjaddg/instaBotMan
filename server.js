@@ -46,7 +46,7 @@ const bot = new TelegramBot(apiToken);
 bot.setMyCommands(commands).then(() => {
   console.log('Commands have been set');
 }).catch((err) => {
-  console.error(err);
+  console.log(err);
 });
 
 bot.on("message", async (msg) => {
@@ -314,6 +314,7 @@ async function addToPostedImage(imageId){
 
 
 }
+
 job.start()
 bot.startPolling();
 
