@@ -16,7 +16,6 @@ const loggedInUser= null
 
 const job = new CronJob('0 12 * * *',async function() {
   try{
-    
     if (!loggedInUser)
       await loginInstagram()
     const myPost = await findImage()
@@ -46,7 +45,7 @@ const bot = new TelegramBot(apiToken);
 bot.setMyCommands(commands).then(() => {
   console.log('Commands have been set');
 }).catch((err) => {
-  console.log(err);
+  console.log('err',err);
 });
 
 bot.on("message", async (msg) => {
@@ -315,6 +314,6 @@ async function addToPostedImage(imageId){
 
 }
 
-job.start()
 bot.startPolling();
+job.start();
 
