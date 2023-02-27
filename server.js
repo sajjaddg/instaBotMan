@@ -313,5 +313,5 @@ async function addToPostedImage(imageId){
 
 
 }
-// bot.startPolling();
+bot.startPolling();
 
