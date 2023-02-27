@@ -13,8 +13,7 @@ require('dotenv').config();
 
 const ig = new IgApiClient();
 const loggedInUser= null
-
-const job = new CronJob('0 12 * * *',async function() {
+const job = new CronJob(process.env.CRON_TIME,async function() {
   try{
     if (!loggedInUser)
       await loginInstagram()
@@ -27,6 +26,7 @@ const job = new CronJob('0 12 * * *',async function() {
     console.log('post nashod');
   }
 });
+job.start();
 
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPBASE_KEY)
 const cache = new NodeCache();
@@ -313,7 +313,5 @@ async function addToPostedImage(imageId){
 
 
 }
-
-bot.startPolling();
-job.start();
+// bot.startPolling();
 
