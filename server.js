@@ -12,15 +12,19 @@ require('dotenv').config();
 
 
 const ig = new IgApiClient();
-const loggedInUser= null
+var loggedInUser= null
+console.log(process.env.CRON_TIME);
 const job = new CronJob(process.env.CRON_TIME,async function() {
   try{
     if (!loggedInUser)
       await loginInstagram()
     const myPost = await findImage()
-    if(myPost)
+    console.log(myPost);
+    if(myPost){
       postImage(myPost.image.file_supbase_url,myPost.image.caption)
       addToPostedImage(myPost.image.id)
+      console.log('post shod');
+    }
   } 
   catch{
     console.log('post nashod');
@@ -313,5 +317,5 @@ async function addToPostedImage(imageId){
 
 
 }
-// bot.startPolling();
+bot.startPolling();
 
