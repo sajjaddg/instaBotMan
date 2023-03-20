@@ -22,7 +22,7 @@ const job = new CronJob(process.env.CRON_TIME,async function() {
     console.log(myPost);
     if(myPost){
       postImage(myPost.image.file_supbase_url,myPost.image.caption)
-      addToPostedImage(myPost.image.id)
+      addToPostedImage(myPost.id)
       console.log('post shod');
     }
   } 
@@ -88,8 +88,8 @@ function processMessage(chatId,msg) {
     }
 }
 async function imagesProcess(chatid){
-  findImage()
   let data = await getImages()
+  
   data?.map((val)=>{
     const image = val.image
     bot.sendPhoto(chatid,image.file_supbase_url,{caption:image.caption})
@@ -246,7 +246,7 @@ async function findImage(){
       `
       )
         
-  const images = data.filter((image)=>{return image.postedImage.length ===0})
+  const images = data?.filter((image)=>{return image.postedImage.length ===0})
   images.sort((a,b)=>a.id>b.id)
   return images.length>0 ? images[0]:null
 }
@@ -281,7 +281,13 @@ async function getImages(){
   let { data, error } = await supabase
   .from('Image')
   .select('image')
-  return data
+
+  if(!error){
+    return data
+  }
+  else{
+    console.log(error);
+  }
 }
 
 async function addImageStorage(url, name){
